@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "evg.py"
+name = "async_evg.py"
 version = "0.1.0"
 description = ""
 authors = ["David Bradford <david.bradford@mongodb.com>"]
