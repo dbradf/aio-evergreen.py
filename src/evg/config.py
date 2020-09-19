@@ -6,6 +6,7 @@ import yaml
 
 DEFAULT_CONFIG_FILE = os.path.expanduser(os.path.join("~", ".evergreen.yml"))
 
+
 class EvgAuth(NamedTuple):
 
     username: Optional[str]
@@ -14,9 +15,9 @@ class EvgAuth(NamedTuple):
     def auth_headers(self) -> Dict[str, str]:
         headers = {}
         if self.username:
-            headers["Auth-User"] = self.username
+            headers["Api-User"] = self.username
         if self.api_key:
-            headers["Auth-Api"] = self.api_key
+            headers["Api-Key"] = self.api_key
 
         return headers
 

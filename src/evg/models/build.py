@@ -34,7 +34,7 @@ class EvgBuild(BaseModel):
     order: int
     time_taken_ms: int
     display_name: str
-    predicted_makespace_ms: int
+    predicted_makespan_ms: int
     actual_makespan_ms: int
     origin: str
     status_counts: StatusCounts

@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "async_evg.py"
-version = "0.1.0"
+version = "0.1.1"
 description = ""
 authors = ["David Bradford <david.bradford@mongodb.com>"]
 license = "Apache-2.0"
@@ -15,9 +15,9 @@ cli = 'evg.cli:main'
 
 [tool.poetry.dependencies]
 python = "^3.7"
-pydantic = "^1.6.1"
-aiohttp = "^3.6.2"
-pyyaml = "^5.3.1"
+pydantic = "^1"
+aiohttp = "^3"
+pyyaml = "^5"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6"
