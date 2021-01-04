@@ -5,13 +5,13 @@ from typing import Any, AsyncIterable, Callable, Dict, List, NamedTuple, Optiona
 from aiohttp import ClientResponse, ClientSession
 
 from evg.api_requests import StatsSpecification
-from evg.api_url import UrlCreator
 from evg.models.evg_manifest import EvgManifest
 from evg.models.evg_patch import EvgPatch
 from evg.models.evg_project import EvgProject
 from evg.models.evg_stats import EvgTaskStats, EvgTestStats
 from evg.models.evg_task import EvgTask
 from evg.models.evg_version import EvgVersion, Requester
+from evg.url_creator import UrlCreator
 
 T = TypeVar("T")
 
@@ -37,7 +37,7 @@ def _get_next_url(response: ClientResponse) -> Optional[str]:
     """
     next_link = response.links.get("next")
     if next_link:
-        return next_link["url"]
+        return str(next_link["url"])
     return None
 
 

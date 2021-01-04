@@ -24,12 +24,28 @@ pytest = "^6"
 pytest-black = "^0.3"
 pytest-cov = "^2.8"
 pytest-flake8 = "^1.0"
-pytest-mypy = "^0.4"
+pytest-mypy = "^0.8"
 pytest-pydocstyle = "^2.0"
 pytest-sugar = "^0.9"
-pytest-isort = "^0.3"
+pytest-isort = "^1.2"
 black = "^20.8b1"
+
+[tool.pytest.ini_options]
+flake8-ignore = "W605 W503 W291 E203 E501 F821"
+addopts = "--flake8 --black --pydocstyle --mypy --isort"
+testpaths = [
+    "src",
+    "tests",
+]
 
 [tool.black]
 line-length = 100
-target-version = ['py36']
+
+[tool.isort]
+profile = "black"
+line_length = 100
+multi_line_output = 3
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

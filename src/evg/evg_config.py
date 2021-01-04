@@ -1,4 +1,5 @@
 """Get configuration about connecting to evergreen."""
+import math
 from dataclasses import dataclass
 from datetime import timedelta
 from pathlib import Path
@@ -7,7 +8,7 @@ from typing import Dict, Optional
 import yaml
 from pydantic.main import BaseModel
 
-DEFAULT_NETWORK_TIMEOUT_SEC = timedelta(minutes=5).total_seconds()
+DEFAULT_NETWORK_TIMEOUT_SEC = math.ceil(timedelta(minutes=5).total_seconds())
 DEFAULT_API_SERVER = "https://evergreen.mongodb.com"
 CONFIG_FILE_LOCATIONS = [
     Path.home() / "cli_bin" / ".evergreen.yml",
@@ -93,5 +94,5 @@ class EvgConfig:
         return None
 
     def get_auth_headers(self) -> Dict[str, str]:
-        """Get HTTP headers to authenticate. """
+        """Get HTTP headers to authenticate."""
         return {"Api-User": self.username, "Api-Key": self.api_key}

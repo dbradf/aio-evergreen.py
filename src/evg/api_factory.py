@@ -1,8 +1,10 @@
 """Factory to create API objects."""
 from contextlib import asynccontextmanager
 from pathlib import Path
+from typing import Optional
 
 from aiohttp import ClientSession
+
 from evg.api import AioEvergreenApi
 from evg.evg_config import EvgConfig
 
@@ -29,16 +31,20 @@ class EvgApiFactory:
         return cls(EvgConfig.from_file(path))
 
     @classmethod
-    def from_default_config(cls) -> "EvgApiFactory":
+    def from_default_config(cls) -> Optional["EvgApiFactory"]:
         """
         Create an API factory from the configuration at the default path.
 
         :return: Factory to create evergreen API client.
         """
-        return cls(EvgConfig.find_default_config())
+        config = EvgConfig.find_default_config()
+        if config:
+            return cls(config)
+        return None
 
     @asynccontextmanager
     async def evergreen_api(self):
+        """Use a context manager to create an API session."""
         headers = self.evg_config.get_auth_headers()
         async with ClientSession(headers=headers) as session:
             api = AioEvergreenApi(session, self.evg_config.api_server)
