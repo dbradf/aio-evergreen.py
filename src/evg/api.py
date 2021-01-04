@@ -1,12 +1,11 @@
 """Async version of the evergreen API."""
 import asyncio
-from contextlib import asynccontextmanager
 from typing import Any, AsyncIterable, Callable, Dict, List, NamedTuple, Optional, TypeVar
 
 from aiohttp import ClientResponse, ClientSession
 
 from evg.api_requests import StatsSpecification
-from evg.evg_config import EvgConfig
+from evg.api_url import UrlCreator
 from evg.models.evg_manifest import EvgManifest
 from evg.models.evg_patch import EvgPatch
 from evg.models.evg_project import EvgProject
@@ -42,17 +41,6 @@ def _get_next_url(response: ClientResponse) -> Optional[str]:
     return None
 
 
-@asynccontextmanager
-async def aio_evg_api():
-    config = EvgConfig.find_default_config()
-    headers = config.get_auth().get_auth_headers()
-    async with ClientSession(headers=headers) as session:
-        api = AioEvergreenApi(session, config.api_server_host)
-        yield api
-        api.session = None
-        print("Closing api")
-
-
 class AioEvergreenApi:
     """Async evergreen API object."""
 
@@ -63,11 +51,12 @@ class AioEvergreenApi:
         :param session: HTTP session to use.
         :param api_server: API server to make queries to.
         """
-        self.session = session
-        self.api_server = api_server
+        self.session: Optional[ClientSession] = session
+        self.url_creator = UrlCreator(api_server)
 
-    def _create_url(self, endpoint: str) -> str:
-        return f"{self.api_server}/rest/v2/{endpoint}"
+    def close(self) -> None:
+        """Close the session this API client was using."""
+        self.session = None
 
     async def _make_get_request(self, url: str, params: Optional[Dict[str, Any]]) -> _ResponseData:
         """
@@ -77,7 +66,6 @@ class AioEvergreenApi:
         :param params: Params to send to URL.
         :return: Response from GET request.
         """
-        print(f"making request: {url}")
         if self.session is None:
             return _ResponseData([], None)
 
@@ -114,7 +102,7 @@ class AioEvergreenApi:
 
     async def all_project(self) -> AsyncIterable[EvgProject]:
         """Get an iterable over all evergreen projects."""
-        url = self._create_url("projects")
+        url = self.url_creator.rest_v2("projects")
         return self._response_iterator(url, transform_fn=lambda d: EvgProject(**d))
 
     # Versions
@@ -129,7 +117,7 @@ class AioEvergreenApi:
         :param requester: Iterate of version created by this requester type.
         :return: Iterable over versions.
         """
-        url = self._create_url(f"projects/{project_id}/versions")
+        url = self.url_creator.rest_v2(f"projects/{project_id}/versions")
         params = {"requester": requester.evg_value()}
         return self._response_iterator(url, lambda v: EvgVersion(**v), params)
 
@@ -142,7 +130,7 @@ class AioEvergreenApi:
         :param project_id: ID of project to query.
         :return: Iterable over patches.
         """
-        url = self._create_url(f"projects/{project_id}/patches")
+        url = self.url_creator.rest_v2(f"projects/{project_id}/patches")
         return self._response_iterator(url, lambda p: EvgPatch(**p))
 
     async def patches_by_user(self, user_id: str) -> AsyncIterable[EvgPatch]:
@@ -152,7 +140,7 @@ class AioEvergreenApi:
         :param user_id: ID of user to query.
         :return: Iterable over patches.
         """
-        url = self._create_url(f"users/{user_id}/patches")
+        url = self.url_creator.rest_v2(f"users/{user_id}/patches")
         return self._response_iterator(url, lambda p: EvgPatch(**p))
 
     # Tasks
@@ -164,7 +152,7 @@ class AioEvergreenApi:
         :param task_id: ID of task to query.
         :return: Data about the task.
         """
-        url = self._create_url(f"tasks/{task_id}")
+        url = self.url_creator.rest_v2(f"tasks/{task_id}")
         with self.session.get(url) as response:
             response.raise_for_status()
             return EvgTask(**await response.json())
@@ -176,7 +164,7 @@ class AioEvergreenApi:
         :param build_id: ID of build to query.
         :return: Iterable over tasks.
         """
-        url = self._create_url(f"builds/{build_id}/tasks")
+        url = self.url_creator.rest_v2(f"builds/{build_id}/tasks")
         return self._response_iterator(url, lambda t: EvgTask(**t))
 
     async def tasks_by_project_and_commit(
@@ -189,7 +177,7 @@ class AioEvergreenApi:
         :param revision: Git commit to query.
         :return: Iterable over tasks.
         """
-        url = self._create_url(f"projects/{project_id}/revisions/{revision}/tasks")
+        url = self.url_creator.rest_v2(f"projects/{project_id}/revisions/{revision}/tasks")
         return self._response_iterator(url, lambda t: EvgTask(**t))
 
     async def manifest_for_task(self, task_id: str) -> EvgManifest:
@@ -199,7 +187,7 @@ class AioEvergreenApi:
         :param task_id: ID of task to query.
         :return: Manifest for specified task.
         """
-        url = self._create_url(f"tasks/{task_id}/manifest")
+        url = self.url_creator.rest_v2(f"tasks/{task_id}/manifest")
         with self.session.get(url) as response:
             response.raise_for_status()
             return EvgManifest(**await response.json())
@@ -214,7 +202,7 @@ class AioEvergreenApi:
         :return: Iterable of test stats.
         """
         params = stats_spec.get_params()
-        url = self._create_url(f"projects/{stats_spec.project_id}/test_stats")
+        url = self.url_creator.rest_v2(f"projects/{stats_spec.project_id}/test_stats")
         return self._response_iterator(url, lambda s: EvgTestStats(**s), params=params)
 
     async def task_stats(self, stats_spec: StatsSpecification) -> AsyncIterable[EvgTaskStats]:
@@ -225,5 +213,5 @@ class AioEvergreenApi:
         :return: Iterable of tasks stats.
         """
         params = stats_spec.get_params()
-        url = self._create_url(f"projects/{stats_spec.project_id}/task_stats")
+        url = self.url_creator.rest_v2(f"projects/{stats_spec.project_id}/task_stats")
         return self._response_iterator(url, lambda s: EvgTaskStats(**s), params=params)
