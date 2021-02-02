@@ -46,7 +46,7 @@ class EvgApiFactory:
     async def evergreen_api(self):
         """Use a context manager to create an API session."""
         headers = self.evg_config.get_auth_headers()
-        async with ClientSession(headers=headers) as session:
+        async with ClientSession(headers=headers, raise_for_status=True) as session:
             api = AioEvergreenApi(session, self.evg_config.api_server)
             yield api
         api.close()
@@ -58,5 +58,5 @@ class EvgApiFactory:
         You should class `close()` on the returned object once finished.
         """
         headers = self.evg_config.get_auth_headers()
-        session = ClientSession(headers=headers)
+        session = ClientSession(headers=headers, raise_for_status=True)
         return AioEvergreenApi(session, self.evg_config.api_server)

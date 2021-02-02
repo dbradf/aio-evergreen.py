@@ -70,7 +70,6 @@ class AioEvergreenApi:
             return _ResponseData([], None)
 
         async with self.session.get(url, params=params) as resp:
-            resp.raise_for_status()
             return _ResponseData(await resp.json(), _get_next_url(resp))
 
     async def _response_iterator(
@@ -153,8 +152,7 @@ class AioEvergreenApi:
         :return: Data about the task.
         """
         url = self.url_creator.rest_v2(f"tasks/{task_id}")
-        with self.session.get(url) as response:
-            response.raise_for_status()
+        async with self.session.get(url) as response:
             return EvgTask(**await response.json())
 
     async def tasks_by_build(self, build_id: str) -> AsyncIterable[EvgTask]:
@@ -215,3 +213,14 @@ class AioEvergreenApi:
         params = stats_spec.get_params()
         url = self.url_creator.rest_v2(f"projects/{stats_spec.project_id}/task_stats")
         return self._response_iterator(url, lambda s: EvgTaskStats(**s), params=params)
+
+    async def stream_log(self, log_url: str) -> AsyncIterable[str]:
+        """
+        Stream contents of the given log URL.
+
+        :param log_url: URL of log to stream.
+        :return: Async Iterable over log contents.
+        """
+        async with self.session.get(log_url, params={"text": "true"}) as reader:
+            async for line in reader.content:
+                yield line.decode("utf-8")
